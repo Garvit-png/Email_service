@@ -1,0 +1,15 @@
+{
+  "name": "email-service",
+  "version": "1.0.0",
+  "description": "Personalized bulk email sender via Gmail SMTP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "send": "node send.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "nodemailer": "^10.0.10"
+  }
+}

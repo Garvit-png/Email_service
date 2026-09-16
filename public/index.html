@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>AI ML Club :: Email Sender</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #fff;
+      color: #000;
+      font-family: monospace;
+      font-size: 14px;
+    }
+
+    /* top bar */
+    #topbar {
+      background: #000;
+      color: #fff;
+      padding: 6px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #topbar .title { font-weight: bold; letter-spacing: 2px; font-size: 15px; }
+    #topbar .sender { font-size: 12px; color: #aaa; }
+
+    /* layout */
+    #wrap {
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      min-height: calc(100vh - 66px);
+      border-top: 3px solid #000;
+    }
+
+    /* sidebar */
+    #sidebar {
+      border-right: 2px solid #000;
+      padding: 12px;
+    }
+    #sidebar h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+    }
+    #sidebar input {
+      width: 100%;
+      border: 1px solid #000;
+      padding: 5px 7px;
+      font-family: monospace;
+      font-size: 13px;
+      margin-bottom: 6px;
+      outline: none;
+    }
+    #sidebar input:focus { border-color: #a855f7; }
+    #add-btn {
+      width: 100%;
+      background: #000;
+      color: #fff;
+      border: none;
+      padding: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    #add-btn:hover { background: #333; }
+    #contact-list { border-top: 1px solid #ccc; }
+    .c-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 4px;
+      border-bottom: 1px solid #eee;
+    }
+    .c-row:hover { background: #f5f5f5; }
+    .c-name  { font-weight: bold; font-size: 13px; }
+    .c-email { font-size: 11px; color: #555; }
+    .c-del {
+      background: none;
+      border: 1px solid #f00;
+      color: #f00;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+    .c-del:hover { background: #f00; color: #fff; }
+    #no-contacts { font-size: 12px; color: #888; padding: 8px 4px; }
+
+    /* main */
+    #main { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+
+    .sec-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+      margin-bottom: 6px;
+    }
+
+    input[type=text], textarea {
+      width: 100%;
+      border: 1px solid #000;
+      padding: 6px 8px;
+      font-family: monospace;
+      font-size: 13px;
+      outline: none;
+    }
+    input[type=text]:focus, textarea:focus { border-color: #a855f7; }
+    textarea { resize: vertical; }
+    #body { height: 110px; }
+
+    .hint { font-size: 11px; color: #888; margin-top: 3px; }
+
+    /* highlight box fields */
+    .highlight-box {
+      border: 1px solid #a855f7;
+      padding: 10px 12px;
+      border-radius: 4px;
+      background: #faf5ff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .highlight-box .box-label {
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #7c3aed;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* send bar */
+    #sendbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 2px solid #000;
+      padding: 10px 16px;
+      background: #f9f9f9;
+    }
+    #sendbar .info { font-size: 13px; }
+    #sendbar .info b { color: #a855f7; }
+    #send-btn {
+      background: #000;
+      color: #a855f7;
+      border: none;
+      padding: 10px 28px;
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      cursor: pointer;
+    }
+    #send-btn:hover { background: #1a1a1a; }
+    #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* preview panel */
+    #preview-wrap {
+      border-top: 2px solid #000;
+      padding: 12px 18px;
+    }
+    #preview-wrap .sec-label { margin-bottom: 10px; }
+    #preview-frame {
+      width: 100%;
+      height: 420px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* modal */
+    #overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      align-items: center;
+      justify-content: center;
+      z-index: 99;
+    }
+    #overlay.open { display: flex; }
+    #modal {
+      background: #fff;
+      border: 2px solid #000;
+      padding: 24px;
+      width: 440px;
+      max-width: 95vw;
+      font-family: monospace;
+    }
+    #modal h2 { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; border-bottom: 1px solid #000; padding-bottom: 6px; }
+    .r-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+    }
+    .r-sent   { color: #16a34a; font-weight: bold; }
+    .r-failed { color: #dc2626; font-weight: bold; }
+    .r-name   { font-weight: bold; }
+    .r-email  { font-size: 11px; color: #666; }
+    #close-btn {
+      margin-top: 16px;
+      background: #000;
+      color: #fff;
+      border: none;
+      padding: 7px 20px;
+      font-family: monospace;
+      font-size: 13px;
+      cursor: pointer;
+      width: 100%;
+    }
+    #close-btn:hover { background: #333; }
+
+    .preview-btn {
+      background: #fff;
+      border: 1px solid #000;
+      padding: 4px 12px;
+      font-family: monospace;
+      font-size: 12px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .preview-btn:hover { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="title">[ AI ML CLUB :: EMAIL SENDER ]</span>
+  <span class="sender">from: <span id="sender-disp">...</span></span>
+</div>
+
+<div id="wrap">
+
+  <!-- sidebar -->
+  <div id="sidebar">
+    <h2>Recipients</h2>
+    <input id="inp-name"  type="text" placeholder="Name" />
+    <input id="inp-email" type="text" placeholder="Email" />
+    <button id="add-btn" onclick="addContact()">+ ADD</button>
+    <div id="contact-list">
+      <div id="no-contacts">No contacts added.</div>
+    </div>
+  </div>
+
+  <!-- main compose -->
+  <div id="main">
+
+    <div>
+      <div class="sec-label">Subject</div>
+      <input type="text" id="subject" value="Congratulations!" />
+    </div>
+
+    <div>
+      <div class="sec-label">Message Body</div>
+      <textarea id="body" placeholder="You have been selected...&#10;&#10;We were impressed by your..."></textarea>
+      <div class="hint">» use {name} for personalization &nbsp;|&nbsp; each paragraph = new line</div>
+    </div>
+
+    <!-- highlight box -->
+    <div>
+      <div class="sec-label">Highlight Box (optional — the purple section)</div>
+      <div class="highlight-box">
+        <div>
+          <div class="box-label">Box Heading</div>
+          <input type="text" id="hl-title" placeholder="e.g. What's next?" />
+        </div>
+        <div>
+          <div class="box-label">Box Body</div>
+          <input type="text" id="hl-body" placeholder="e.g. We'll share onboarding details soon." />
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="box-label">Button Text</div>
+            <input type="text" id="btn-text" placeholder="e.g. Join WhatsApp Group" />
+          </div>
+          <div>
+            <div class="box-label">Button URL</div>
+            <input type="text" id="btn-url" placeholder="https://..." />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- preview -->
+    <div>
+      <button class="preview-btn" onclick="updatePreview()">▶ PREVIEW EMAIL</button>
+      <iframe id="preview-frame" srcdoc="<p style='font-family:monospace;color:#aaa;padding:20px;'>Click PREVIEW EMAIL to see the rendered template.</p>"></iframe>
+    </div>
+
+  </div>
+</div>
+
+<!-- send bar -->
+<div id="sendbar">
+  <div class="info">Sending to <b id="cnt">0</b> recipient(s)</div>
+  <button id="send-btn" onclick="sendEmails()">SEND &gt;&gt;</button>
+</div>
+
+<!-- modal -->
+<div id="overlay">
+  <div id="modal">
+    <h2>:: Send Results</h2>
+    <div id="modal-body"></div>
+    <button id="close-btn" onclick="closeModal()">CLOSE</button>
+  </div>
+</div>
+
+<script>
+  let contacts = [];
+  let senderEmail = '';
+
+  fetch('/api/config').then(r=>r.json()).then(d=>{
+    senderEmail = d.sender;
+    document.getElementById('sender-disp').textContent = d.sender;
+  });
+
+  function addContact() {
+    const name  = document.getElementById('inp-name').value.trim();
+    const email = document.getElementById('inp-email').value.trim();
+    if (!name || !email) return alert('Enter name and email.');
+    if (!email.includes('@')) return alert('Invalid email.');
+    if (contacts.find(c=>c.email===email)) return alert('Already added.');
+    contacts.push({name, email});
+    document.getElementById('inp-name').value  = '';
+    document.getElementById('inp-email').value = '';
+    render();
+  }
+
+  function removeContact(email) {
+    contacts = contacts.filter(c=>c.email!==email);
+    render();
+  }
+
+  function render() {
+    document.getElementById('cnt').textContent = contacts.length;
+    const list = document.getElementById('contact-list');
+    if (!contacts.length) {
+      list.innerHTML = '<div id="no-contacts">No contacts added.</div>';
+      return;
+    }
+    list.innerHTML = contacts.map(c=>`
+      <div class="c-row">
+        <div>
+          <div class="c-name">${esc(c.name)}</div>
+          <div class="c-email">${esc(c.email)}</div>
+        </div>
+        <button class="c-del" onclick="removeContact('${esc(c.email)}')">DEL</button>
+      </div>`).join('');
+  }
+
+  function buildPreviewHTML(name) {
+    const body         = document.getElementById('body').value.trim();
+    const hlTitle      = document.getElementById('hl-title').value.trim();
+    const hlBody       = document.getElementById('hl-body').value.trim();
+    const btnText      = document.getElementById('btn-text').value.trim();
+    const btnUrl       = document.getElementById('btn-url').value.trim();
+
+    const personalizedBody = body.replace(/\{name\}/gi, name);
+
+    const bodyHtml = personalizedBody
+      .split('\n').map(l=>l.trim()).filter(l=>l.length>0)
+      .map(l=>`<p style="margin:0 0 10px 0;">${l}</p>`).join('');
+
+    const hlBlock = (hlTitle || hlBody) ? `
+      <div style="border-left:4px solid #a855f7;background:#faf5ff;padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0;">
+        ${hlTitle ? `<p style="margin:0 0 6px 0;font-weight:bold;color:#7c3aed;font-size:15px;">${hlTitle}</p>` : ''}
+        ${hlBody  ? `<p style="margin:0 0 12px 0;color:#374151;font-size:13px;">${hlBody}</p>` : ''}
+        ${btnText && btnUrl ? `<a href="${btnUrl}" style="display:inline-block;background:#a855f7;color:#fff;padding:10px 22px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:bold;">${btnText}</a>` : ''}
+      </div>` : '';
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"/></head>
+    <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:30px 0;">
+    <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <tr>
+        <td style="background:#000;padding:28px 40px;text-align:center;">
+          <img src="/logo.png" alt="AI ML Club" style="max-height:240px;max-width:100%;display:inline-block;" />
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:30px 40px;color:#111;font-size:14px;line-height:1.7;">
+          <p style="margin:0 0 16px 0;font-size:14px;color:#374151;">Dear <strong>${name}</strong>,</p>
+          ${bodyHtml}
+          ${hlBlock}
+          <p style="margin:20px 0 0 0;font-size:14px;color:#374151;">
+            Best regards,<br/>
+            <strong>Team AI ML Club</strong><br/>
+            <span style="color:#6b7280;font-size:12px;">Rishihood University</span>
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px 40px;text-align:center;">
+          <p style="margin:0;font-size:11px;color:#9ca3af;letter-spacing:1px;">
+            AI ML CLUB &nbsp;|&nbsp; RISHIHOOD UNIVERSITY &nbsp;|&nbsp; ${senderEmail}
+          </p>
+        </td>
+      </tr>
+    </table>
+    </td></tr></table>
+    </body></html>`;
+  }
+
+  function updatePreview() {
+    const previewName = contacts.length > 0 ? contacts[0].name : 'Garvit';
+    const html = buildPreviewHTML(previewName);
+    document.getElementById('preview-frame').srcdoc = html;
+  }
+
+  async function sendEmails() {
+    if (!contacts.length) return alert('No recipients.');
+    const subject  = document.getElementById('subject').value.trim();
+    const body     = document.getElementById('body').value.trim();
+    const hlTitle  = document.getElementById('hl-title').value.trim();
+    const hlBody   = document.getElementById('hl-body').value.trim();
+    const btnText  = document.getElementById('btn-text').value.trim();
+    const btnUrl   = document.getElementById('btn-url').value.trim();
+    if (!subject) return alert('Enter a subject.');
+    if (!body)    return alert('Write a message.');
+
+    const btn = document.getElementById('send-btn');
+    btn.disabled = true;
+    btn.textContent = 'SENDING...';
+
+    try {
+      const res = await fetch('/api/send', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ contacts, subject, body, highlightTitle: hlTitle, highlightBody: hlBody, buttonText: btnText, buttonUrl: btnUrl })
+      });
+      const data = await res.json();
+      showResults(data.results);
+    } catch(e) {
+      alert('Error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'SEND >>';
+    }
+  }
+
+  function showResults(results) {
+    document.getElementById('modal-body').innerHTML = results.map(r=>`
+      <div class="r-row">
+        <div>
+          <div class="r-name">${esc(r.name)}</div>
+          <div class="r-email">${esc(r.email)}</div>
+        </div>
+        <span class="${r.status==='sent'?'r-sent':'r-failed'}">${r.status==='sent'?'[OK]':'[FAIL]'}</span>
+      </div>`).join('');
+    document.getElementById('overlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('overlay').classList.remove('open');
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  document.getElementById('inp-name').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('inp-email').focus(); });
+  document.getElementById('inp-email').addEventListener('keydown', e=>{ if(e.key==='Enter') addContact(); });
+</script>
+</body>
+</html>
