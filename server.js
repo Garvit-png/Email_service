@@ -53,7 +53,7 @@ function buildHTML({ name, body, highlightTitle, highlightBody, buttonText, butt
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
 
-      
+
         <!-- Banner -->
         <tr>
           <td style="background:#000; padding:28px 40px; text-align:center;">
@@ -142,3 +142,6 @@ const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`\n🚀  Email service running at http://localhost:${PORT}\n`);
 });
+
+
+
