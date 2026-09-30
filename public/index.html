@@ -65,9 +65,49 @@
       font-family: monospace;
       font-size: 13px;
       cursor: pointer;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
     }
     #add-btn:hover { background: #333; }
+    #csv-btn {
+      width: 100%;
+      background: #fff;
+      color: #a855f7;
+      border: 1px solid #a855f7;
+      padding: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+    #csv-btn:hover { background: #faf5ff; }
+    #csv-input { display: none; }
+    #paste-area {
+      width: 100%;
+      height: 80px;
+      border: 1px dashed #a855f7;
+      padding: 6px 8px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: none;
+      outline: none;
+      color: #000;
+      margin-bottom: 6px;
+    }
+    #paste-area:focus { border-color: #7c3aed; border-style: solid; }
+    #parse-btn {
+      width: 100%;
+      background: #a855f7;
+      color: #fff;
+      border: none;
+      padding: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+    #parse-btn:hover { background: #7c3aed; }
     #contact-list { border-top: 1px solid #ccc; }
     .c-row {
       display: flex;
@@ -242,9 +282,13 @@
   <!-- sidebar -->
   <div id="sidebar">
     <h2>Recipients</h2>
-    <input id="inp-name"  type="text" placeholder="Name" />
+    <textarea id="paste-area" placeholder="Paste names + emails here:&#10;Garvit Gandhi   garvitgandhi@gmail.com&#10;Japinder Kaur   japinder@gmail.com&#10;&#10;Tab, space, or comma separated."></textarea>
+    <button id="parse-btn" onclick="parsePaste()">+ PARSE &amp; ADD</button>
+    <input id="inp-name"  type="text" placeholder="or add manually — Name" />
     <input id="inp-email" type="text" placeholder="Email" />
     <button id="add-btn" onclick="addContact()">+ ADD</button>
+    <input type="file" id="csv-input" accept=".csv" onchange="loadCSV(event)" />
+    <button id="csv-btn" onclick="document.getElementById('csv-input').click()">⬆ IMPORT CSV</button>
     <div id="contact-list">
       <div id="no-contacts">No contacts added.</div>
     </div>
@@ -255,12 +299,22 @@
 
     <div>
       <div class="sec-label">Subject</div>
-      <input type="text" id="subject" value="Congratulations!" />
+      <input type="text" id="subject" value="Welcome to AIRIS – Onboarding Session Details" />
     </div>
 
     <div>
       <div class="sec-label">Message Body</div>
-      <textarea id="body" placeholder="You have been selected...&#10;&#10;We were impressed by your..."></textarea>
+      <textarea id="body">We are excited to welcome you to the **Artificial Intelligence and Research Innovation Society (AIRIS)**.
+
+As the next step, we will be conducting the **AIRIS Onboarding Session** on:
+
+**Date:** 18 September 2026 (Friday)
+
+**Time:** 8:30 PM
+
+**Venue:** A409
+
+We look forward to meeting you and beginning this journey together.</textarea>
       <div class="hint">» use {name} for personalization &nbsp;|&nbsp; each paragraph = new line</div>
     </div>
 
@@ -322,6 +376,74 @@
     document.getElementById('sender-disp').textContent = d.sender;
   });
 
+  function parsePaste() {
+    const raw = document.getElementById('paste-area').value.trim();
+    if (!raw) return alert('Paste something first.');
+
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    let added = 0, skipped = 0;
+
+    for (const line of lines) {
+      // split on tab, multiple spaces, or comma
+      const parts = line.split(/[\t,]+|\s{2,}/).map(p => p.trim()).filter(p => p.length > 0);
+      if (parts.length < 2) { skipped++; continue; }
+
+      // find which part is the email (contains @)
+      const emailIdx = parts.findIndex(p => p.includes('@'));
+      if (emailIdx === -1) { skipped++; continue; }
+
+      const email = parts[emailIdx];
+      // everything except the email part = name
+      const name  = parts.filter((_, i) => i !== emailIdx).join(' ');
+
+      if (!name) { skipped++; continue; }
+      if (contacts.find(c => c.email === email)) { skipped++; continue; }
+
+      contacts.push({ name, email });
+      added++;
+    }
+
+    document.getElementById('paste-area').value = '';
+    render();
+    if (added > 0) alert(`Added ${added} contact(s).${skipped > 0 ? ` Skipped ${skipped}.` : ''}`);
+    else alert('No valid contacts found. Make sure each line has a name and email.');
+  }
+
+  function loadCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const lines = e.target.result.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length < 2) return alert('CSV is empty or has no data rows.');
+
+      // detect header row — find name and email column indexes (case-insensitive)
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g,''));
+      const nameIdx  = headers.findIndex(h => h === 'name');
+      const emailIdx = headers.findIndex(h => h === 'email');
+
+      if (nameIdx === -1 || emailIdx === -1) {
+        return alert('CSV must have "name" and "email" columns in the header row.');
+      }
+
+      let added = 0, skipped = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const cols  = lines[i].split(',').map(c => c.trim().replace(/"/g,''));
+        const name  = cols[nameIdx]  || '';
+        const email = cols[emailIdx] || '';
+        if (!name || !email || !email.includes('@')) { skipped++; continue; }
+        if (contacts.find(c => c.email === email))   { skipped++; continue; }
+        contacts.push({ name, email });
+        added++;
+      }
+      // reset file input so same file can be re-imported if needed
+      event.target.value = '';
+      render();
+      alert(`Imported ${added} contact(s). Skipped ${skipped}.`);
+    };
+    reader.readAsText(file);
+  }
+
   function addContact() {
     const name  = document.getElementById('inp-name').value.trim();
     const email = document.getElementById('inp-email').value.trim();
@@ -367,7 +489,10 @@
 
     const bodyHtml = personalizedBody
       .split('\n').map(l=>l.trim()).filter(l=>l.length>0)
-      .map(l=>`<p style="margin:0 0 10px 0;">${l}</p>`).join('');
+      .map(l => {
+        l = l.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        return `<p style="margin:0 0 10px 0;color:#374151;font-size:14px;line-height:1.7;">${l}</p>`;
+      }).join('');
 
     const hlBlock = (hlTitle || hlBody) ? `
       <div style="border-left:4px solid #a855f7;background:#faf5ff;padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0;">
@@ -383,26 +508,17 @@
     <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
       <tr>
         <td style="background:#000;padding:28px 40px;text-align:center;">
-          <img src="/logo.png" alt="AI ML Club" style="max-height:240px;max-width:100%;display:inline-block;" />
+          <img src="/logo.png" alt="AIRIS" style="max-height:240px;max-width:100%;display:inline-block;" />
         </td>
       </tr>
       <tr>
-        <td style="padding:30px 40px;color:#111;font-size:14px;line-height:1.7;">
+        <td style="padding:36px 40px;color:#111;font-size:14px;line-height:1.7;">
           <p style="margin:0 0 16px 0;font-size:14px;color:#374151;">Dear <strong>${name}</strong>,</p>
           ${bodyHtml}
           ${hlBlock}
-          <p style="margin:20px 0 0 0;font-size:14px;color:#374151;">
-            Best regards,<br/>
-            <strong>Team AI ML Club</strong><br/>
-            <span style="color:#6b7280;font-size:12px;">Rishihood University</span>
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px 40px;text-align:center;">
-          <p style="margin:0;font-size:11px;color:#9ca3af;letter-spacing:1px;">
-            AI ML CLUB &nbsp;|&nbsp; RISHIHOOD UNIVERSITY &nbsp;|&nbsp; ${senderEmail}
-          </p>
+          <p style="margin:28px 0 4px 0;font-size:14px;color:#374151;"><strong>Best regards,</strong></p>
+          <p style="margin:0 0 2px 0;font-size:15px;font-weight:bold;color:#111;">Japinder Kaur</p>
+          <p style="margin:0;font-size:13px;color:#6b7280;">General Secretary (AIRIS)</p>
         </td>
       </tr>
     </table>
